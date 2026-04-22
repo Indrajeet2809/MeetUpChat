@@ -5,17 +5,23 @@ const accessChat = async (currentUserId, userId) => {
     throw new Error("UserId is required");
   }
 
-  // Check if chat already exists
   let chat = await Chat.findOne({
     isGroupChat: false,
     participants: { $all: [currentUserId, userId] },
-  }).populate("participants", "-password");
+  })
+    .populate("participants", "-password")
+    .populate({
+      path: "latestMessage",
+      populate: {
+        path: "sender",
+        select: "-password",
+      },
+    });
 
   if (chat) {
     return chat;
   }
 
-  // Create new chat
   const newChat = await Chat.create({
     isGroupChat: false,
     participants: [currentUserId, userId],
@@ -34,7 +40,13 @@ const getUserChats = async (userId) => {
     participants: { $in: [userId] },
   })
     .populate("participants", "-password")
-    .populate("latestMessage")
+    .populate({
+      path: "latestMessage",
+      populate: {
+        path: "sender",
+        select: "-password",
+      },
+    })
     .sort({ updatedAt: -1 });
 
   return chats;
